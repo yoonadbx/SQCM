@@ -1,6 +1,7 @@
 from tools.constants import File_path, get_date, get_time
 
-logging_path = File_path().date_path[1]
+path = File_path()
+logging_path = path()
 
 
 # Todo:规定一下logging的输出格式

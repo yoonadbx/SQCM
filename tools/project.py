@@ -1,5 +1,6 @@
 import os
 from tools.constants import File_path
+from Test.test_for_scan import dummyget, dummyset
 import numpy as np
 import h5py
 import sys
@@ -11,7 +12,7 @@ import sys
 class DataManager:
     def __init__(self, path=File_path(), run_id: int = 0):
         self.path = path
-        self.date_path = path.date_path[0]  # e.g. 'D:/Data/2023-09-19/'
+        self.date_path = path()  # e.g. 'D:/Data/2023-09-19/'
         self.date = path.date
         self.id = run_id
         self.data_keys = {"scan": ['scan/scan_range_x', 'scan/scan_range_y'],
@@ -31,7 +32,7 @@ class DataManager:
     def update_run_id(self):
         if self.path.update_date_dir():
             self.id = 0
-            self.date_path = self.path.date_path[0]
+            self.date_path = self.path()
             self.date = self.path.date
         else:
             self.id += 1
@@ -72,6 +73,39 @@ class DataManager:
             return msg
         self.data_cache = data
         return 'Save a cache successfully'
+
+
+class ACQTask:
+    __slots__ = 'read', '__dict__'
+
+    def __init__(self, acq_name: str):
+        self.acq = acq_name
+        self._acq_controller = {'art': self.art, 'm2p': self.m2p}
+
+    def __enter__(self):
+        self.read = self._acq_controller[self.acq]()
+        return self
+
+    @classmethod
+    def get_acq(cls, acq_name):
+        return getattr(cls, acq_name)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    @staticmethod
+    def art():
+        #         task = artdaq.Task()
+        #         task.ai_channels.add_ai_voltage_chan(f"Dev1/ai0:3")
+        #         task.timing.cfg_samp_clk_timing(sr, sample_mode=AcquisitionType.CONTINUOUS, samps_per_chan=int(memsize))
+        return dummyget
+
+    @staticmethod
+    def m2p():
+        return dummyget
+
+    def close(self):
+        print('close')
 
 
 

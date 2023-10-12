@@ -5,17 +5,16 @@ import numpy as np
 
 class File_path:
     def __init__(self):
-        self.data_root_path = 'D:/Data/'
-        self.logger_root_path = "D:/Logger/"
-        self.root_path = [self.data_root_path, self.logger_root_path]
+        self.root_path = "C:/Data/"
         self.date = get_date()
         self.date_path = self.create_date_dir()
         self.is_existing(self.root_path)
 
+    def __call__(self):
+        return self.date_path
+
     def create_date_dir(self):
-        dir_name = []
-        for path in self.root_path:
-            dir_name.append(path + self.date + '/')
+        dir_name = self.root_path + self.date + '/'
         self.is_existing(dir_name)
         return dir_name
 
@@ -33,11 +32,10 @@ class File_path:
             return False
 
     @staticmethod
-    def is_existing(path: list = None):
-        for path in path:
-            if not os.path.exists(path):
-                os.makedirs(path)
-                print(f'{path} is created successfully')
+    def is_existing(path: str = None):
+        if not os.path.exists(path):
+            os.makedirs(path)
+            print(f'{path} is created successfully')
             # print('All the paths are prepared well! ')
 
 

@@ -1,3 +1,4 @@
+from typing import List
 from tools.project import DataManager
 from qcodes.instrument import Parameter
 from qcodes.utils.validators import Union
@@ -58,7 +59,7 @@ class Scan:
     # ToDo: 适配不同采集卡
     def __init__(self,
                  para_meas: Parameter,
-                 para_scan: Union[list[Parameter], Parameter],
+                 para_scan: Union[List[Parameter], Parameter],
                  data_manager: DataManager,
                  logger: Logger,
                  scaler: float,
@@ -251,7 +252,7 @@ class Scan:
             safe(para, 0)
             end_msg = f'Scan {para.name} stops at {end_time}\n' + '-' * 20 + "\n"
             self.logger.write(end_msg)
-        self.manager.data_cache(self.data)
+        self.manager.save_cache(self.data)
         return end_time
 
     def scan_2d(self, scan_x: int, scan_y: int):
