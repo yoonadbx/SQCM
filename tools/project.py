@@ -1,18 +1,39 @@
 import os
 from tools.constants import File_path
 from Test.test_for_scan import dummyget, dummyset
+from tools.logger import Logger
 import numpy as np
 import h5py
 import sys
-# from qcodes import initialise_or_create_database_at
 
-"载入当天日期的文件夹路径，用来放置数据"
+path = File_path()
+project_path = path()
+
+
+class Project:
+    def __int__(self,
+                sample_name: str,
+                temperature: str,
+                tester: str,
+                start_id: int = 0,
+                station = None,
+                instruments: dict = None
+                ):
+        self.sample_name = sample_name
+        self.temperature = temperature
+        self.tester = tester
+        self.station = station
+        self.instruments = instruments
+        self.start_id = start_id
+        self.manager = DataManager(path, self.start_id)
+        self.logger = Logger(self.sample_name, self.temperature, self.tester, path())
+        self.constants = {}
 
 
 class DataManager:
-    def __init__(self, path=File_path(), run_id: int = 0):
-        self.path = path
-        self.date_path = path()  # e.g. 'D:/Data/2023-09-19/'
+    def __init__(self, data_path: File_path, run_id: int = 0):
+        self.path = data_path
+        self.date_path = data_path()  # e.g. 'D:/Data/2023-09-19/'
         self.date = path.date
         self.id = run_id
         self.data_keys = {"scan": ['scan/scan_range_x', 'scan/scan_range_y'],
@@ -104,7 +125,8 @@ class ACQTask:
     def m2p():
         return dummyget
 
-    def close(self):
+    @staticmethod
+    def close():
         print('close')
 
 

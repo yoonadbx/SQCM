@@ -1,7 +1,4 @@
-from tools.constants import File_path, get_date, get_time
-
-path = File_path()
-logging_path = path()
+from tools.constants import get_date, get_time
 
 
 # Todo:规定一下logging的输出格式
@@ -10,7 +7,7 @@ class Logger:
                  sample_name: str,
                  mkor4k: str,
                  tester: str,
-                 path: str = logging_path):
+                 path: str):
         self.logging_path = path
         self.project_name = sample_name + mkor4k + 'test'
         self.sample_name = sample_name
