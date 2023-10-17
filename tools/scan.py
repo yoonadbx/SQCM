@@ -1,8 +1,8 @@
 from typing import List
-from tools.project import DataManager
+from tools.project import Project, ACQTask
 from qcodes.instrument import Parameter
 from qcodes.utils.validators import Union
-from tools.logger import Logger
+# from tools.logger import Logger
 from numpy import ndarray
 import numpy as np
 import time
@@ -10,8 +10,6 @@ from tools.constants import snapshot, get_time, generate_text
 from collections import Iterable
 import h5py
 
-
-# from reprint import output as opt
 
 def safe(parameter, end_point):
     if isinstance(parameter, Iterable):
@@ -56,12 +54,11 @@ def ramp_all_to_zero(station):
 
 
 class Scan:
-    # ToDo: 适配不同采集卡
+
     def __init__(self,
                  para_meas: Parameter,
                  para_scan: Union[List[Parameter], Parameter],
-                 data_manager: DataManager,
-                 logger: Logger,
+                 project: Project,
                  scaler: float,
                  sleep: float = 0.01
                  ):
@@ -74,13 +71,19 @@ class Scan:
         :return: None
         """
         self.scaler = scaler
-        self.manager = data_manager
+        self.current_unit = self.scaler_parser
+        self.manager = project.manager
         self.para_meas, self.para_scan = self.parameter_validate(para_meas, para_scan)
         self._ranges = {"scan_1d": [np.array([0])],
                         "scan_2d": [np.array([0]), np.array([0])]}
-        self.logger = logger
+        self.logger = project.logger
         self.sleep = sleep
         self.data: ndarray = np.array([[0], [0]])
+
+    @property
+    def scaler_parser(self):
+        unit = {'pA': 1e12, 'nA': 1e9, 'muA': 1e6, 'mA': 1e3, 'A': 1e0}
+        return [k for k, v in unit.items() if v == self.scaler][0]
 
     @staticmethod
     def parameter_validate(*args):
@@ -127,49 +130,18 @@ class Scan:
         :param scan_x: 选定扫描参数
         :return:
         """
-        # range_1d = self._ranges['scan_1d'][0, :]
-        # scan_para = self.para_scan[scan_x]
-        # self.data = np.zeros((len(self.para_meas), len(range_1d)))
-        # self.manager.update_run_id()
-        # data_file = self.manager.create_hdf5_file
         range_1d, scan_x_para, data_file = self.scan_prepare(scan_type='scan_1d', scan_para_list=[scan_x])
 
         with h5py.File(data_file, 'a') as file:
-            # ----------------------------------------------------------------------------------------------------------
-            # try:
-            #     file.create_dataset(self.manager.data_keys['scan'][0], data=range_1d)
-            #     dataset = file.create_dataset(self.manager.data_keys['meas'], shape=np.shape(self.data))
-            # except ValueError:
-            #     dataset = file[self.manager.data_keys['meas']]
+
             dataset = self.scan_dataset(file, range_1d)
-            # ----------------------------------------------------------------------------------------------------------
-            # safe(scan_x_para, range_1d[0])
-            # start_time = get_time()
-            # start_msg = f"Scan {scan_x_para.name} on {self.scan_dimension}d with the result of {self.para_meas[0].name} of which the run id is {self.manager.id}\nStart at {start_time}"
-            # self.logger.write(start_msg)
+
             start_time = self.scan_start(scan_x_para, range_1d)
-            # ----------------------------------------------------------------------------------------------------------
-            # for idx, vx in enumerate(range_1d):
-            #     output(scan_x, vx)
-            #     time.sleep(self.sleep)
-            #     for idz, vz in enumerate(self.para_meas):
-            #         raw_data = vz() / self.scaler
-            #         self.data[idz, idx] = np.average(raw_data)
-            # --------------------------------------------------------------------------------------------------
-            # self.manager.progress_bar(current=self.data[idz, idx],
-            #                           idx=idx,
-            #                           idz=idz,
-            #                           length=len(range_1d))
-            # ------------------------------------------------------------------------------------------------------
-            # dataset[:, idx] = self.data[:, idx]
+
             self.scan_action(range_1d, scan_x_para, dataset)
-            # ----------------------------------------------------------------------------------------------------------
-            # end_time = get_time()
-            # safe(scan_x, 0)
-            # end_msg = f' and stop at {end_time}\n' + '-' * 20 + "\n"
-            # self.logger.write(end_msg)
+
             end_time = self.scan_end(scan_x_para)
-            # ----------------------------------------------------------------------------------------------------------
+
             notes = self.generate_notes(start_time, end_time)
             for key in notes.keys():
                 dataset.attrs[key] = notes[key]
@@ -214,37 +186,44 @@ class Scan:
             raise ValueError('The dimension of scan ranges excesses two !')
 
     def scan_action_1d(self, ranges, scan_para, dataset):
-        for idx, vx in enumerate(ranges[0]):
-            output(scan_para[0], vx)
-            time.sleep(self.sleep)
-            for idz, vz in enumerate(self.para_meas):
-                raw_data = vz() / self.scaler
-                self.data[idz, idx] = np.average(raw_data)
-                # ------------------------------------------------------------------------------------------------------
-                self.manager.progress_bar(current=self.data[idz, idx],
-                                          idx=idx,
-                                          idz=idz,
-                                          length=len(ranges[0]))
-            # ----------------------------------------------------------------------------------------------------------
-            dataset[:, idx] = self.data[:, idx]
-
-    def scan_action_2d(self, ranges, scan_para, dataset):
-        for idy, vy in enumerate(ranges[1]):
-            safe(scan_para[0], ranges[0][0])
-            output(scan_para[1], vy)
+        with ACQTask(acq_name='art',
+                     acq_channels='Dev1/ai4',
+                     sample_rate=1e4,
+                     memory_size=1000) as daq:
             for idx, vx in enumerate(ranges[0]):
                 output(scan_para[0], vx)
                 time.sleep(self.sleep)
                 for idz, vz in enumerate(self.para_meas):
-                    raw_data = vz() / self.scaler
-                    self.data[idz, idx, idy] = np.average(raw_data)
-                    self.manager.progress_bar(current=self.data[idz, idx, idy],
-                                              idy=idy,
+                    raw_data = daq.read() / self.scaler
+                    self.data[idz, idx] = np.average(raw_data)
+                    self.manager.progress_bar(current=self.data[idz, idx],
                                               idx=idx,
                                               idz=idz,
                                               length=len(ranges[0]))
 
-            dataset[:, :, idy] = self.data[:, :, idy]
+                dataset[:, idx] = self.data[:, idx]
+
+    def scan_action_2d(self, ranges, scan_para, dataset):
+        with ACQTask(acq_name='art',
+                     acq_channels='Dev1/ai4',
+                     sample_rate=1e4,
+                     memory_size=1000) as daq:
+            for idy, vy in enumerate(ranges[1]):
+                safe(scan_para[0], ranges[0][0])
+                output(scan_para[1], vy)
+                for idx, vx in enumerate(ranges[0]):
+                    output(scan_para[0], vx)
+                    time.sleep(self.sleep)
+                    for idz, vz in enumerate(self.para_meas):
+                        raw_data = daq.read() / self.scaler
+                        self.data[idz, idx, idy] = np.average(raw_data)
+                        self.manager.progress_bar(current=self.data[idz, idx, idy],
+                                                  idy=idy,
+                                                  idx=idx,
+                                                  idz=idz,
+                                                  length=len(ranges[0]))
+
+                dataset[:, :, idy] = self.data[:, :, idy]
 
     def scan_end(self, scan_para: list):
         end_time = get_time()
@@ -274,7 +253,6 @@ class Scan:
                 dataset.attrs[key] = notes[key]
 
         return notes
-
 
     def generate_notes(self,
                        start_time,
