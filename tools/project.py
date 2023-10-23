@@ -67,8 +67,7 @@ class DataManager:
         scale = 40
         unit_ = {'pA': 1e12, 'nA': 1e9, 'muA': 1e6, 'mA': 1e3, 'A': 1e0}
         print(
-            "\rStart experimental run with id:{ID} idy:{idy} idz:{idz} idx:{idx} --- {current:.4f} nA [{done}{"
-            "padding}]{percent:.1f}%".format(
+            '\rStart experimental run with id:{ID} idy:{idy} idz:{idz} idx:{idx} --- {current:.4f} nA [{done}{padding}]{percent:.1f}%'.format(
                 ID=self.id,
                 idy=idy,
                 idz=idz,
