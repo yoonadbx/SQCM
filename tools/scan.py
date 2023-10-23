@@ -194,9 +194,10 @@ class Scan:
                 output(scan_para[0], vx)
                 time.sleep(self.sleep)
                 for idz, vz in enumerate(self.para_meas):
-                    raw_data = daq.read() / self.scaler
+                    raw_data = np.array(daq.read()) / self.scaler
                     self.data[idz, idx] = np.average(raw_data)
                     self.manager.progress_bar(current=self.data[idz, idx],
+                                              current_unit=self.current_unit,
                                               idx=idx,
                                               idz=idz,
                                               length=len(ranges[0]))
@@ -215,9 +216,10 @@ class Scan:
                     output(scan_para[0], vx)
                     time.sleep(self.sleep)
                     for idz, vz in enumerate(self.para_meas):
-                        raw_data = daq.read() / self.scaler
+                        raw_data = np.array(daq.read()) / self.scaler
                         self.data[idz, idx, idy] = np.average(raw_data)
                         self.manager.progress_bar(current=self.data[idz, idx, idy],
+                                                  current_unit=self.current_unit,
                                                   idy=idy,
                                                   idx=idx,
                                                   idz=idz,
