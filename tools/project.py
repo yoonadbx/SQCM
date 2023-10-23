@@ -2,12 +2,9 @@ import os
 from tools.constants import File_path
 from tools.logger import Logger
 import numpy as np
-from functools import partial
-from random import random, gauss
 import h5py
 import sys
-import artdaq
-from artdaq.constants import AcquisitionType
+
 
 path = File_path()
 project_path = path()
@@ -70,7 +67,8 @@ class DataManager:
         scale = 40
         unit_ = {'pA': 1e12, 'nA': 1e9, 'muA': 1e6, 'mA': 1e3, 'A': 1e0}
         print(
-            "\rStart experimental run with id:{ID} idy:{idy} idz:{idz} idx:{idx} --- {current:.4f} nA [{done}{padding}]{percent:.1f}%".format(
+            "\rStart experimental run with id:{ID} idy:{idy} idz:{idz} idx:{idx} --- {current:.4f} nA [{done}{"
+            "padding}]{percent:.1f}%".format(
                 ID=self.id,
                 idy=idy,
                 idz=idz,
@@ -98,46 +96,3 @@ class DataManager:
             return msg
         self.data_cache = data
         return 'Save a cache successfully'
-
-
-class ACQTask:
-    __slots__ = 'task', 'read', '__dict__'
-
-    def __init__(self, acq_name: str, acq_channels: str, sample_rate: float, memory_size: int):
-        self.acq = acq_name
-        self.channels = acq_channels
-        self.sr = sample_rate
-        self.memsize = memory_size
-        self._acq_controller = {'art': self.art, 'm2p': self.m2p}
-
-    def __enter__(self):
-        self.task, self.read = self._acq_controller[self.acq]()
-        return self
-
-    @classmethod
-    def get_acq(cls, acq_name):
-        return getattr(cls, acq_name)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-    def art(self):
-        task = artdaq.Task()
-        task.ai_channels.add_ai_voltage_chan(self.channels)
-        task.timing.cfg_samp_clk_timing(self.sr, sample_mode=AcquisitionType.CONTINUOUS, samps_per_chan=int(self.memsize))
-        return task, partial(task.read, number_of_samples_per_channel=self.memsize)
-
-    @staticmethod
-    def m2p():
-        return dummyget
-
-    def close(self):
-        self.task.close()
-
-
-def dummyset(voltage):
-    return voltage
-
-
-def dummyget():
-    return gauss(10, 5)
