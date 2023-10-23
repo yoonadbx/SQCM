@@ -108,7 +108,6 @@ class Channel:
                     if len(self.config_limitation) == 2
                     else getattr(self, self.config_limitation[0])))
 
-
     def __repr__(self):
         output_str = f"{self.channel_name} (group={self.group}, id={self.id}, type={self.channel_type})"
         if self.input:
@@ -150,8 +149,6 @@ class Channel:
         return ConditionType.limitations[self.channel_type]
 
 
-
-
 class InstrumentChannels:
     """ 代表一个仪器，包含所需要的channel信息，以及仪器的名称。
     """
@@ -159,7 +156,6 @@ class InstrumentChannels:
     def __init__(self, name: str) -> None:
         self.name = name
         self.channels = []
-
 
     def add_channel(self, channel_name: str, channel: int, channel_type, group, Input):
         self.channels.append(Channel(channel_name, channel_type, channel, group, Input))
@@ -177,7 +173,6 @@ class InstrumentChannels:
             self.add_channel(k, v, channel_type, group, Input)
 
 # Todo: 写一个 meta_instrument Chip
-
 
 
 class ACQTask:
@@ -226,6 +221,7 @@ def dummyset(voltage):
 def dummyget():
     return gauss(10, 5)
 
+
 if __name__ == '__main__':
     # chip = InstrumentChannels('chip1')
     # chip.add_channels({'Gate1': 1, 'Gate2': 2}, group=1, channel_type=ChannelType.DC, Input=False)
@@ -235,4 +231,3 @@ if __name__ == '__main__':
     channel = Channel('Gate1', ChannelType.DC, 1, 1, Input=False, high=1, low=0)
     print(channel)
     print(channel.condition(0.5))
-
