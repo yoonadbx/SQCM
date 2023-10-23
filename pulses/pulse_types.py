@@ -1,6 +1,5 @@
 from qcodes.instrument import parameter
 from qcodes.utils.validators import Numbers, Lists
-from instrument_interfaces.interfaces import InstrumentType
 
 
 class Pulse:
@@ -28,10 +27,10 @@ class Pulse:
                                               set_cmd=None,
                                               docstring="""振幅输入为一个list, 一个元素代表恒定值，两个代表扫描的范围，即[L, H]""")
         self.frequencies = parameter.Parameter('frequencies',
-                                              initial_value=frequencies,
-                                              vals=Lists(),
-                                              set_cmd=None,
-                                              docstring="""频率输入为一个list, 一个元素代表恒定值，两个代表扫描的范围，即[L, H]""")
+                                               initial_value=frequencies,
+                                               vals=Lists(),
+                                               set_cmd=None,
+                                               docstring="""频率输入为一个list, 一个元素代表恒定值，两个代表扫描的范围，即[L, H]""")
         self.t_start = parameter.Parameter('t_start',
                                            initial_value=t_start,
                                            vals=Numbers(),
@@ -45,7 +44,6 @@ class Pulse:
                                           vals=Numbers(),
                                           set_cmd=None)
 
-
     # def __repr__(self):
     #     # Todo：后面增加成snapshot
     #     pulse_info = f'Pulse info\n name: {self.name}\n id: {self.id}\n sender: {self.sender}\n acceptor: {self.acceptor}'
@@ -55,6 +53,7 @@ class Pulse:
     #     pulse_class = self.__class__.__name__
     #     return f'{pulse_class}({pulse_info})'
     # Todo: 增加判断Pulse是否相同的函数接口
+
 
 class DCFixedPulse(Pulse):
     def __init__(self,
@@ -88,13 +87,13 @@ class DCFixedPulse(Pulse):
 
 class DCRampPulse(Pulse):
     def __init__(self,
-                 name:str,
-                 amplitude_start:float,
-                 amplitude_stop:float,
+                 name: str,
+                 amplitude_start: float,
+                 amplitude_stop: float,
                  sender=None,
                  acceptor=None,
                  **kwargs):
-        super().__init__(name=name,sender=sender,acceptor=acceptor, **kwargs)
+        super().__init__(name=name, sender=sender, acceptor=acceptor, **kwargs)
         self.amplitude_start = parameter.Parameter('amp_start',
                                                    initial_value=amplitude_start,
                                                    unit='V',
@@ -122,8 +121,7 @@ class DCRampPulse(Pulse):
         print(self._get_repr())
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     dc = DCFixedPulse('la', amplitude=1)
     print(dc)
     dc.snapshot()
-

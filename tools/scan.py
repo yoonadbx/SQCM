@@ -1,13 +1,15 @@
 from typing import List
-from tools.project import Project, ACQTask
+from tools.project import Project
+from instruments.meta_instruments import ACQTask
 from qcodes.instrument import Parameter
 from qcodes.utils.validators import Union
 # from tools.logger import Logger
 from numpy import ndarray
 import numpy as np
 import time
-from tools.constants import snapshot, get_time, generate_text
+from tools.constants import snapshot, get_time
 from collections import Iterable
+# from visualization import generate_notes
 import h5py
 
 
@@ -66,7 +68,6 @@ class Scan:
 
         :param para_meas: 测量参数，类型为Parameter，支持多个或者一个
         :param para_scan: 扫描参数
-        :param data_manager: 管理数据的工具
         :param scaler: 最后结果为数据同scaler相乘
         :return: None
         """
@@ -126,7 +127,6 @@ class Scan:
     def scan_1d(self, scan_x: int):
         # Todo：将scan_x同chip的channel联系起来
         """
-
         :param scan_x: 选定扫描参数
         :return:
         """
@@ -141,11 +141,6 @@ class Scan:
             self.scan_action(range_1d, scan_x_para, dataset)
 
             end_time = self.scan_end(scan_x_para)
-
-            notes = self.generate_notes(start_time, end_time)
-            for key in notes.keys():
-                dataset.attrs[key] = notes[key]
-        return notes
 
     def scan_prepare(self, scan_type: str, scan_para_list: list) -> (list, Parameter, str):
         ranges = self._ranges[scan_type]
@@ -249,49 +244,4 @@ class Scan:
 
             end_time = self.scan_end(scan_xy_para)
 
-            notes = self.generate_notes(start_time, end_time)
 
-            for key in notes.keys():
-                dataset.attrs[key] = notes[key]
-
-        return notes
-
-    def generate_notes(self,
-                       start_time,
-                       end_time,
-                       para_meas=None,
-                       para_scan_x=None,
-                       para_scan_y=None,
-                       memsize=None,
-                       sr=None,
-                       repeat=None):
-        # Todo:写一个数据可视化的类，然后将这个函数包含进去叫title_generator
-        title = f"id:{self.manager.id} " + \
-                self.manager.date_path + \
-                "\n" + start_time + " --- " + end_time + \
-                "\n" + f"project name: {self.logger.project_name}, tester: {self.logger.tester}"
-        # text = generate_text(project.station, para_scan_x, para_scan_y)
-        text = 'scan'
-
-        notes = {"text": text, "subtitle": title, "comment": ""}
-
-        if para_scan_x:
-            exec(f"notes['label_x'] =  generate_label(para_scan_x)")
-            exec(f"notes['label_x_unit'] = para_scan_x[0].unit")
-
-            if para_meas:
-                exec(f"notes['label_z'] = para_meas[0].label")
-                exec(f"notes['label_z_unit'] = para_meas[0].unit")
-
-            if para_scan_y:
-                exec(f"notes['label_y'] =  generate_label(para_scan_y)")
-                exec(f"notes['label_y_unit'] = para_scan_y[0].unit")
-
-        if memsize:
-            notes["memsize"] = memsize
-        if sr:
-            notes["sr"] = sr
-        if repeat:
-            notes["repeat"] = repeat
-
-        return notes
