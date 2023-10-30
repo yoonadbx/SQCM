@@ -175,7 +175,6 @@ class InstrumentChannels:
 
 # Todo: 写一个 meta_instrument Chip
 
-
 class ACQTask:
     """ 代表一个采集任务，包含了采集的参数，采集的方法，采集的数据。"""
     __slots__ = 'task', 'read', '__dict__'

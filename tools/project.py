@@ -5,7 +5,6 @@ import numpy as np
 import h5py
 import sys
 
-
 path = File_path()
 project_path = path()
 
@@ -63,17 +62,17 @@ class DataManager:
         file_name = self.date_path + f'{self.id}.hdf5'
         return file_name
 
-    def progress_bar(self, length, idx, idz, current, idy=None):
+    def progress_bar(self, length, idx, idz, current, current_unit: str, idy=None):
         scale = 40
         unit_ = {'pA': 1e12, 'nA': 1e9, 'muA': 1e6, 'mA': 1e3, 'A': 1e0}
         print(
-            "\rStart experimental run with id:{ID} idy:{idy} idz:{idz} idx:{idx} --- {current:.4f} nA [{done}{"
-            "padding}]{percent:.1f}%".format(
+            '\rStart experimental run with id:{ID} idy:{idy} idz:{idz} idx:{idx} --- {current:.4f} {current_unit} [{done}{padding}]{percent:.1f}%'.format(
                 ID=self.id,
                 idy=idy,
                 idz=idz,
                 idx=idx,
-                current=current * 1e9,
+                current=current * unit_[current_unit],
+                current_unit=current_unit,
                 done="#" * int((idx + 1) / length * scale),
                 padding=" " * (scale - int((idx + 1) / length * scale)),
                 percent=(idx + 1) / length * 100
