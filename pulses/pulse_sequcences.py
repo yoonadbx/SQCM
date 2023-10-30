@@ -6,13 +6,13 @@ from pulses.pulse_types import Pulse
 class PulseAssemblingRequirements:
     def __init__(self,
                  connection=None,
-                 order:list=None,
-                 cycles:int=None,
-                 alignment:Anything=None):
-        self.reqs = {'connection':connection,
+                 order: list = None,
+                 cycles: int = None,
+                 alignment: Anything = None):
+        self.reqs = {'connection': connection,
                      'order': order,
-                     'cycles':cycles,
-                     'alignment':alignment}
+                     'cycles': cycles,
+                     'alignment': alignment}
 
 
 class PulseSequence:
@@ -44,7 +44,6 @@ class PulseSequence:
         self.pulse_elements = pulse_elements
         self.pulse_sequence = {}
 
-
     @property
     def sender_sorted(self):
         dict_sorted = {}
@@ -62,14 +61,12 @@ class PulseSequence:
             dict_sorted[k] = v.acceptor.get()
         return dict_sorted
 
-    def pulse_assembling(self, requirements:PulseAssemblingRequirements):
+    def pulse_assembling(self, requirements: PulseAssemblingRequirements):
         # ToDo: 组装之前需要对传入的要求同pulse和conncetion呼应，然后每一项比对，
         # 全部通过之后核对channel的condition，然后开始
 
         if requirements.reqs['connection']:
             pass
-
-
 
     def sequence_generator(self):
         # ToDo: 遍历需要的connection,然后用pulse_aseembling对每一个connection组装需要的脉冲，然后返回脉冲序列的属性，
