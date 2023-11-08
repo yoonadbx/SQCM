@@ -1,61 +1,73 @@
-from qcodes.instrument import parameter
-from qcodes.utils.validators import Numbers, Lists
 
 
 class Pulse:
+    """
+    Pulse类，用于描述脉冲的基本信息，包括脉冲的名称，脉冲的id，脉冲的发送端，脉冲的接收端，脉冲的起始时间，脉冲的终止时间，脉冲的持续时间
+    """
     def __init__(self,
                  name: str = None,
-                 id: int = None,
+                 ID: int = None,
                  sender=None,
                  acceptor=None,
-                 amplitudes: list = None,
-                 frequencies: list = None,
                  t_start: float = None,
                  t_stop: float = None,
                  duration: float = None):
+        """
+        :param name: 脉冲的名称
+        :param ID: 脉冲的id
+        :param sender: 脉冲的发送端, 格式是仪器名字.通道名字，例如，sp1060.Ch1
+        :param acceptor: 脉冲的接收端, 格式是仪器名字.通道名字，例如，chip1.Gate1
+        :param t_start: 脉冲的起始时间，单位为s
+        :param t_stop: 脉冲的终止时间，单位为s
+        :param duration: 脉冲的持续时间，单位为s
+        """
         self.name = name
-        self.id = id
-        self.sender = parameter.Parameter('sender',
-                                          initial_value=sender,
-                                          set_cmd=None)
-        self.acceptor = parameter.Parameter('acceptor',
-                                            initial_value=acceptor,
-                                            set_cmd=None)
-        self.amplitudes = parameter.Parameter('amplitudes',
-                                              initial_value=amplitudes,
-                                              vals=Lists(),
-                                              set_cmd=None,
-                                              docstring="""振幅输入为一个list, 一个元素代表恒定值，两个代表扫描的范围，即[L, H]""")
-        self.frequencies = parameter.Parameter('frequencies',
-                                               initial_value=frequencies,
-                                               vals=Lists(),
-                                               set_cmd=None,
-                                               docstring="""频率输入为一个list, 一个元素代表恒定值，两个代表扫描的范围，即[L, H]""")
-        self.t_start = parameter.Parameter('t_start',
-                                           initial_value=t_start,
-                                           vals=Numbers(),
-                                           set_cmd=None)
-        self.t_stop = parameter.Parameter('t_stop',
-                                          initial_value=t_stop,
-                                          vals=Numbers(),
-                                          set_cmd=None)
-        self.t_stop = parameter.Parameter('duration',
-                                          initial_value=duration,
-                                          vals=Numbers(),
-                                          set_cmd=None)
+        if ID is None:
+            ID = id(self)
+        self.id = ID
+        self.sender = sender
+        self.acceptor = acceptor
+        if t_stop is None and t_start is not None and duration is not None:
+            self.t_stop = t_start + duration
+        elif t_stop is not None and t_start is None and duration is not None:
+            self.t_start = t_stop - duration
+        elif t_stop is not None and t_start is not None and duration is None:
+            self.duration = t_stop - t_start
+        else:
+            raise ValueError('Either t_stop or t_start and duration must be specified')
 
-    # def __repr__(self):
-    #     # Todo：后面增加成snapshot
-    #     pulse_info = f'Pulse info\n name: {self.name}\n id: {self.id}\n sender: {self.sender}\n acceptor: {self.acceptor}'
-    #     return self._get_repr(pulse_info)
+    def __repr__(self):
+        return self._get_repr()
 
-    # def _get_repr(self, pulse_info):
-    #     pulse_class = self.__class__.__name__
-    #     return f'{pulse_class}({pulse_info})'
-    # Todo: 增加判断Pulse是否相同的函数接口
+    def _get_repr(self):
+        pulse_info = f'Pulse info\n ' \
+                     f'\tpulse class: {self.__class__.__name__}\n ' \
+                     f'\tname: {self.name}\n ' \
+                     f'\tid: {self.id}\n ' \
+                     f'\tsender: {self.sender}\n ' \
+                     f'\tacceptor: {self.acceptor}\n ' \
+                     f'\tt_start: {self.t_start}\n ' \
+                     f'\tt_stop: {self.t_stop}\n ' \
+                     f'\tduration: {self.duration}\n'
+        return pulse_info
+
+    def snapshot(self):
+        print(self._get_repr())
+
+    def __eq__(self, other):
+        return self.name == other.name and self.id == other.id
+
+    def __hash__(self):
+        return hash((self.name, self.id))
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class DCFixedPulse(Pulse):
+    """
+    恒定电压值的DC脉冲类，基本信息包括脉冲的名称，脉冲的id，脉冲的发送端，脉冲的接收端，脉冲的起始时间，脉冲的终止时间，脉冲的持续时间，脉冲的幅度
+    """
     def __init__(self,
                  name: str = None,
                  amplitude: float = None,
@@ -63,19 +75,16 @@ class DCFixedPulse(Pulse):
                  acceptor=None,
                  **kwargs):
         super().__init__(name=name, sender=sender, acceptor=acceptor, **kwargs)
-        self.amplitude = parameter.Parameter('amplitude',
-                                             initial_value=amplitude,
-                                             unit='V',
-                                             set_cmd=None)
+        self.amplitude = amplitude
 
     def _get_repr(self):
         pulse_info = f'Pulse info\n ' \
                      f'\tpulse class: {self.__class__.__name__}\n ' \
                      f'\tname: {self.name}\n ' \
                      f'\tid: {self.id}\n ' \
-                     f'\tsender: {self.sender.get()}\n ' \
-                     f'\tacceptor: {self.acceptor.get()}\n ' \
-                     f'\tamplitude: {self.amplitude.get()}\n'
+                     f'\tsender: {self.sender}\n ' \
+                     f'\tacceptor: {self.acceptor}\n ' \
+                     f'\tamplitude: {self.amplitude}\n'
         return pulse_info
 
     def __repr__(self):
@@ -86,32 +95,40 @@ class DCFixedPulse(Pulse):
 
 
 class DCRampPulse(Pulse):
+    """
+    扫描给定电压范围的DC脉冲类，基本信息包括脉冲的名称，脉冲的id，脉冲的发送端，脉冲的接收端，脉冲的起始时间，脉冲的终止时间，脉冲的持续时间，脉冲的起始幅度，脉冲的终止幅度，脉冲的斜率
+    """
     def __init__(self,
                  name: str,
                  amplitude_start: float,
                  amplitude_stop: float,
                  sender=None,
                  acceptor=None,
+                 ramp_rate: float = None,
                  **kwargs):
+        """
+        :param name: 脉冲的名称
+        :param amplitude_start: 振幅的起始值
+        :param amplitude_stop: 振幅的终止值
+        :param sender: 脉冲的发送端, 格式是仪器名字.通道名字，例如，sp1060.Ch1
+        :param acceptor: 脉冲的接收端, 格式是仪器名字.通道名字，例如，chip1.Gate1
+        :param ramp_rate: 脉冲的斜率，单位为V/s
+        :param kwargs:
+        """
         super().__init__(name=name, sender=sender, acceptor=acceptor, **kwargs)
-        self.amplitude_start = parameter.Parameter('amp_start',
-                                                   initial_value=amplitude_start,
-                                                   unit='V',
-                                                   vals=Numbers())
-        self.amplitude_stop = parameter.Parameter('amp_stop',
-                                                  initial_value=amplitude_stop,
-                                                  unit='V',
-                                                  vals=Numbers())
+        self.amplitude_start = amplitude_start
+        self.amplitude_stop = amplitude_stop
+        self.ramp_rate = ramp_rate
 
     def _get_repr(self):
         pulse_info = f'Pulse info\n ' \
                      f'\tpulse class: {self.__class__.__name__}\n ' \
                      f'\tname: {self.name}\n ' \
                      f'\tid: {self.id}\n ' \
-                     f'\tsender: {self.sender.get()}\n ' \
+                     f'\tsender: {self.sender}\n ' \
                      f'\tacceptor: {self.acceptor.get()}\n ' \
-                     f'\tamplitude start: {self.amplitude_start.get()}\n ' \
-                     f'\tamplitude_stop:{self.amplitude_stop.get()}'
+                     f'\tamplitude start: {self.amplitude_start}\n ' \
+                     f'\tamplitude_stop:{self.amplitude_stop}'
         return pulse_info
 
     def __repr__(self):
@@ -121,7 +138,31 @@ class DCRampPulse(Pulse):
         print(self._get_repr())
 
 
-if __name__ == '__main__':
-    dc = DCFixedPulse('la', amplitude=1)
-    print(dc)
-    dc.snapshot()
+class DCPulse(Pulse):
+    """
+    用于AWG读写的DC脉冲类，基本信息包括脉冲的名称，脉冲的id，脉冲的发送端，脉冲的接收端，脉冲的起始时间，脉冲的终止时间，脉冲的持续时间，脉冲的幅度
+    """
+    def __init__(self,
+                 name: str = None,
+                 amplitude: float = None,
+                 sender=None,
+                 acceptor=None,
+                 **kwargs):
+        super().__init__(name=name, sender=sender, acceptor=acceptor, **kwargs)
+        self.amplitude = amplitude
+
+    def _get_repr(self):
+        pulse_info = f'Pulse info\n ' \
+                     f'\tpulse class: {self.__class__.__name__}\n ' \
+                     f'\tname: {self.name}\n ' \
+                     f'\tid: {self.id}\n ' \
+                     f'\tsender: {self.sender}\n ' \
+                     f'\tacceptor: {self.acceptor}\n ' \
+                     f'\tamplitude: {self.amplitude}\n'
+        return pulse_info
+
+    def __repr__(self):
+        return self._get_repr()
+
+    def snapshot(self):
+        print(self._get_repr())

@@ -143,6 +143,11 @@ class Scan:
             end_time = self.scan_end(scan_x_para)
 
     def scan_prepare(self, scan_type: str, scan_para_list: list) -> (list, Parameter, str):
+        """
+        :param scan_type: 只能是'scan_1d'或者'scan_2d'
+        :param scan_para_list:
+        :return:
+        """
         ranges = self._ranges[scan_type]
         scan_para = [self.para_scan[para] for para in scan_para_list]
         if len(ranges) == len(scan_para):

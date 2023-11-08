@@ -9,7 +9,7 @@ class ConditionType:
     Connection condition class 用于描述connection的类型
     """
 
-    limitations = {'DC': ['low', 'high'], 'AC': ['cut_off'], 'Fast': ['max_power']}
+    limitations = {'DC': ['low', 'high'], 'AC': ['cut_off'], 'Fast': ['max_power'], 'Acq': ['max_memory_size']}
 
     @classmethod
     def DC_condition(cls, low: float, high: float, amplitude: float):
@@ -44,8 +44,8 @@ class ConditionType:
     def Fast_condition(cls, max_power: float, power: float):
         """
         Fast_condition 用于描述Fast信号的条件, 并判断输入的signal的功率等是否满足条件
-        :param max_power:
-        :param power:
+        :param max_power: 最大的功率
+        :param power: 输入的功率
         :return:
         """
         if power < max_power:
@@ -55,16 +55,33 @@ class ConditionType:
             return False
 
     @classmethod
+    def Acq_condition(self, max_memory_size: int, memory_size: int):
+        """
+        Acq_condition 用于描述Acq信号的条件, 并判断输入的memory_size是否满足条件
+        :param max_memory_size: 最大的memory_size
+        :param memory_size: 输入的memory_size
+        :return:
+        """
+        if memory_size < max_memory_size:
+            return True
+        else:
+            print(f'The memory size {memory_size} of the pulse excess the range {max_memory_size} of the Acq channel')
+            return False
+
+    def __init__(self):
+        pass
+
+    @classmethod
     @property
     def collection_conditions(cls) -> dict:
-        return {'DC': cls.DC_condition, 'AC': cls.AC_condition, 'Fast': cls.Fast_condition}
+        return {'DC': cls.DC_condition, 'AC': cls.AC_condition, 'Fast': cls.Fast_condition, 'Acq': cls.Acq_condition}
 
 
 class ChannelType:
     DC = 'DC'
     AC = 'AC'
     Fast = 'Fast'
-    Acq = 'Acquisition'
+    Acq = 'Acq'
     Bias = 'DC+AC'
     collection = [DC, AC, Fast, Acq]
 
@@ -89,9 +106,13 @@ class Channel:
         :param ID:通道id
         :param group:通道所属的组别，例如，对于DC类型的通道而言，group 1 代表开关盒的第一组通道
         :param Input:是否为输入通道, True 为输入，反之为False，默认为True
-        :param kwargs: 通道的条件参数，例如，对于DC类型的通道而言，需要配置high和low两个参数；
+        :param kwargs: 通道的条件参数，例如，
+        对于DC类型的通道而言，需要配置high和low两个参数；
+        对于AC类型的通道而言，需要配置cut_off参数;
+        对于Fast类型的通道而言，需要配置max_power参数；
+        对于Acq类型的通道而言，需要配置max_memory_size参数；
         """
-        self.channel_name = f'Group_{group}_{ID}_{channel_name}_{channel_type}'
+        self.channel_name = channel_name
         self.channel_type = channel_type
         self.group = group
         self.id = ID
@@ -118,7 +139,13 @@ class Channel:
         return output_str
 
     def __str__(self):
-        return self.channel_name
+        output_str = f"{self.channel_name} (group={self.group}, id={self.id}, type={self.channel_type})"
+        if self.input:
+            output_str += ' input'
+        else:
+            output_str += ' output'
+
+        return output_str
 
     def __hash__(self):
         return hash(self.channel_name)
@@ -144,6 +171,7 @@ class Channel:
         对于DC类型的通道而言，需要配置high和low两个参数；
         对于AC类型的通道而言，需要配置cut_off参数；
         对于Fast类型的通道而言，需要配置max_power参数
+        对于Acq类型的通道而言，需要配置max_memory_size参数
         :return:
         """
         return ConditionType.limitations[self.channel_type]
@@ -157,20 +185,55 @@ class InstrumentChannels:
         self.name = name
         self.channels = []
 
-    def add_channel(self, channel_name: str, channel: int, channel_type, group, Input):
-        self.channels.append(Channel(channel_name, channel_type, channel, group, Input))
+    def add_channel(self, channel_name: str, channel_type: str, channel_num: int, group, Input, **kwargs):
+        """
+        添加一个channel
+        :param channel_name: 通道名字为仪器名字加上通道名字，例如，仪器名字为chip1，通道名字为Gate1，则通道名字为chip1.Gate1
+        :param channel_num: 通道数
+        :param channel_type: 通道类型, 可选值为ChannelType中的值
+        :param group: 通道所属的组别，例如，对于DC类型的通道而言，group 1 代表开关盒的第一组通道
+        :param Input: 是否为输入通道
+        :param kwargs: 通道的条件参数，例如，
+        对于DC类型的通道而言，需要配置high和low两个参数；
+        对于AC类型的通道而言，需要配置cut_off参数;
+        对于Fast类型的通道而言，需要配置max_power参数；
+        对于Acq类型的通道而言，需要配置max_memory_size参数；
+        :return:
+        """
+        channel_name = self.name + '.' + channel_name
+        cha = Channel(channel_name, channel_type, channel_num, group, Input, **kwargs)
+        if not self._is_same_channel(cha):
+            self.channels.append(cha)
+        else:
+            print(f'The channel {cha} already exists!')
 
-    def add_channels(self, channel_dict: dict, group: int, channel_type: str = ChannelType.DC, Input: bool = True):
+    def add_channels(self, channel_dict: dict, group: int, channel_type: str = ChannelType.DC, Input: bool = True, **kwargs):
         """
 
         :param channel_dict: channel 字典，key为channel_name, value为channel id
         :param group: 通道所属的组别，例如，对于DC类型的通道而言，group 1 代表开关盒的第一组通道
         :param channel_type: channel 类型
         :param Input: 是否为输入通道
+        :param kwargs: 通道的条件参数，例如，
+        对于DC类型的通道而言，需要配置high和low两个参数；
+        对于AC类型的通道而言，需要配置cut_off参数;
+        对于Fast类型的通道而言，需要配置max_power参数；
+        对于Acq类型的通道而言，需要配置max_memory_size参数；
         :return: None
         """
         for k, v in channel_dict.items():
-            self.add_channel(k, v, channel_type, group, Input)
+            self.add_channel(channel_name=k, channel_num=v, channel_type=channel_type, group=group, Input=Input, **kwargs)
+
+    def _is_same_channel(self, cha) -> bool:
+        """
+        判断channel是否已经存在，如果存在则返回True，反之返回False
+        :param cha: 判断对象
+        :return: bool
+        """
+        for ch in self.channels:
+            if cha == ch:
+                return True
+        return False
 
 
 # Todo: 写一个 meta_instrument Chip
@@ -209,6 +272,20 @@ class ACQTask:
     @staticmethod
     def m2p():
         return dummyget
+
+    def param_configure(self, acq_name: str, acq_channels: str, sample_rate: float, memory_size: int):
+        """
+        用于配置采集的参数
+        :param acq_name: 采集卡名字
+        :param acq_channels: 采集的通道
+        :param sample_rate: 采样率
+        :param memory_size: 寄存器大小
+        :return:
+        """
+        self.acq = acq_name
+        self.channels = acq_channels
+        self.sr = sample_rate
+        self.memsize = memory_size
 
     def close(self):
         self.task.close()
