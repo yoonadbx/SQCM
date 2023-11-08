@@ -55,7 +55,7 @@ class ConditionType:
             return False
 
     @classmethod
-    def Acq_condition(self, max_memory_size: int, memory_size: int):
+    def Acq_condition(cls, max_memory_size: int, memory_size: int):
         """
         Acq_condition 用于描述Acq信号的条件, 并判断输入的memory_size是否满足条件
         :param max_memory_size: 最大的memory_size
@@ -72,7 +72,6 @@ class ConditionType:
         pass
 
     @classmethod
-    @property
     def collection_conditions(cls) -> dict:
         return {'DC': cls.DC_condition, 'AC': cls.AC_condition, 'Fast': cls.Fast_condition, 'Acq': cls.Acq_condition}
 
@@ -163,7 +162,7 @@ class Channel:
         :return: 返回condition函数句柄
         """
 
-        return ConditionType.collection_conditions[self.channel_type]
+        return ConditionType.collection_conditions()[self.channel_type]
 
     @property
     def config_limitation(self):
@@ -304,7 +303,7 @@ if __name__ == '__main__':
     # chip.add_channels({'Gate1': 1, 'Gate2': 2}, group=1, channel_type=ChannelType.DC, Input=False)
     # print(chip.channels)
     print(ConditionType.collection_conditions)
-    print(ConditionType.collection_conditions['AC'](1, 2))
+    print(ConditionType.collection_conditions()['AC'](1, 2))
     channel = Channel('Gate1', ChannelType.DC, 1, 1, Input=False, high=1, low=0)
     print(channel)
     print(channel.condition(0.5))

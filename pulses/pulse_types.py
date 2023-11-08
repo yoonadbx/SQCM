@@ -27,6 +27,9 @@ class Pulse:
         self.id = ID
         self.sender = sender
         self.acceptor = acceptor
+        self.t_start = t_start
+        self.duration = duration
+        self.t_stop = t_stop
         if t_stop is None and t_start is not None and duration is not None:
             self.t_stop = t_start + duration
         elif t_stop is not None and t_start is None and duration is not None:
@@ -166,3 +169,5 @@ class DCPulse(Pulse):
 
     def snapshot(self):
         print(self._get_repr())
+
+

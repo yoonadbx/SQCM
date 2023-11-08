@@ -1,5 +1,4 @@
 from instrument_interfaces.interfaces import Connection
-from pulses.pulse_types import Pulse
 
 
 class PulseLine:
@@ -37,7 +36,7 @@ class PulseLine:
 
         self.t_start = t_start
         self.duration = 0
-        self.stop = 0
+        self.t_stop = 0
         # pulse_elements 按时间顺序写进列表中
         self.pulse_line = []
         # 时间线
@@ -47,10 +46,10 @@ class PulseLine:
         return self._get_repr()
 
     def _get_repr(self):
-        pulse_line_info = f'Pulse line info\n '\
-                          f'\tname: {self.name}\n '\
-                          f'\tstart time: {self.t_start} s'\
-                          f'\tduration: {self.duration} s'\
+        pulse_line_info = f'Pulse line info\n ' \
+                          f'\tname: {self.name}\n ' \
+                          f'\tstart time: {self.t_start} s' \
+                          f'\tduration: {self.duration} s' \
                           f'\t pulse elements: {self.pulse_elements}'
 
         return pulse_line_info
@@ -68,10 +67,10 @@ class PulseLine:
         # 如果repeat小于1，抛出异常
         if repeat < 1:
             raise ValueError(f"repeat {repeat} must be larger than 1")
-        self.pulse_elements[pulse_element_name] = self.pulse_elements[pulse_element_name].append(repeat)
-        self.pulse_elements[pulse_element_name] = self.pulse_elements[pulse_element_name].insert(0, delay)
+        self.pulse_elements[pulse_element_name].append(repeat)
+        self.pulse_elements[pulse_element_name].insert(0, delay)
 
-    def check_repeat_and_delay(self, pulse_element: list = None, pulse_element_name: str = None)-> bool:
+    def check_repeat_and_delay(self, pulse_element: list = None, pulse_element_name: str = None) -> bool:
         """
         pulse_element和pulse_element_name两者输入其一
         :param pulse_element: 需要check的pulse_element
@@ -93,6 +92,7 @@ class PulseLine:
                 return True
             else:
                 raise ValueError(f'pulse_element_name {pulse_element_name} does not exist')
+        return False
 
     def add_pulse_element(self, pulse_element_name: str, pulse_element: list, delay: float = 0, repeat: int = 1):
         """
@@ -121,19 +121,21 @@ class PulseLine:
         for pulse_element_name, pulse_element in pulse_elements.items():
             self.pulse_elements[pulse_element_name] = pulse_element
 
-    def add_pulse_elements_to_pulse_line(self, order: list):
+    def add_pulse_elements_to_pulse_line(self, order: list = None):
         """
         按照order的顺序将pulse_elements添加到pulse_line中, pulse_line格式是
         [[delay, pulse_element1, pulse_element2, ..., repeat], [delay, pulse_element3, pulse_element4, ..., repeat],...]
         :param order: pulse_elements的顺序
         :return:
         """
+        pulse_line = []
         if order is None:
             for pulse_element in self.pulse_elements.values():
-                self.pulse_line.extend(pulse_element)
+                pulse_line.append(pulse_element)
         else:
             for pulse_element_name in order:
-                self.pulse_line.extend(self.pulse_elements[self.get_pulse_element_name[pulse_element_name]])
+                pulse_line.append(self.pulse_elements[self.get_pulse_element_name[pulse_element_name]])
+        self.pulse_line = pulse_line
 
     def remove_pulse_elements_from_pulse_line(self, pulse_element_name: str):
         """
@@ -151,13 +153,16 @@ class PulseLine:
         将pulse_elements中脉冲单元的时间线统一到pulse_line的时间线上，计算出总的时长，并将脉冲单元的起始时间放到time_line中
         """
         stop = self.t_start
+        time_line = []
         for pulse_element in self.pulse_line:
             if self.check_repeat_and_delay(pulse_element):
-                for pulse in pulse_element[1:-1]*pulse_element[-1]:
-                    self.time_line.append(pulse_element[0]+pulse.t_start+stop)
-                    stop += pulse_element[0]+pulse.t_start+pulse.duration
+                stop += pulse_element[0]
+                for pulse in pulse_element[1:-1] * pulse_element[-1]:
+                    time_line.append(pulse.t_start + stop)
+                    stop += pulse.duration
         self.duration = stop - self.t_start
-        self.stop = stop
+        self.t_stop = stop
+        self.time_line = time_line
 
     @property
     def get_pulse_element_name(self):
@@ -169,3 +174,15 @@ class PulseLine:
         for name in self.pulse_elements.keys():
             names.append(name)
         return names
+
+    def connection_conditions_satisfied(self):
+        """
+        判断pulse line中的pulse是否满足connection的条件
+        :return:
+        """
+        for pulse_element in self.pulse_line:
+            for pulse in pulse_element[1:-1]:
+                if self.connection.check_pulse(pulse) and self.connection.check_conditions(pulse):
+                    continue
+                else:
+                    return False
