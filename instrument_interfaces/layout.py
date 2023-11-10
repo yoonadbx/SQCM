@@ -101,7 +101,8 @@ class Layout:
                 return True
         return False
 
-    def config_pulse_line(self, line_name: str, connection: int, line_start: float = 0, init_pulse: List[Pulse] = None, pulse_elements: dict = None, order: list = None):
+    def config_pulse_line(self, line_name: str, connection: int, line_start: float = 0, init_pulse: List[Pulse] = None,
+                          pulse_elements: dict = None, order: list = None):
         """
         构造一个pulse line, 并放到pulse sequence中
         :param pulse_elements: 通过字典的方式添加脉冲重复单元，字典的格式是{"pulse_element_name": [delay, pulse_element1, pulse_element2, ..., repeat]}
@@ -124,12 +125,22 @@ class Layout:
 
     def target_pulse_sequence(self):
         """
-        将pulse_sequence中的pulse line传递给对应的instrument interface
+        将pulse_sequence中的pulse line传递给对应的instrument interface,
+        # Todo: pulse line中的pulse类型需要限制在DC pulse, AC pulse和IQ中
         :return:
         """
         for key, value in self.pulse_sequence.items():
             if value.connection_conditions_satisfied():
                 arg = value.sender.split('.')
                 interface = self.instrument_interfaces[arg[0]]
-                interface.pulse_implementation(value)
+                interface.pulse_line_implementation(pulse_line=value, ch=arg[1])
 
+    def target_pulse(self, pulse):
+        """
+        将pulse传递给对应的instrument interface
+        # Todo: pulse类型需要限制在DC fixed pulse和AC fixed pulse等之间
+        :return:
+        """
+        arg = pulse.sender.split('.')
+        interface = self.instrument_interfaces[arg[0]]
+        interface.pulse_implementation(pulse)

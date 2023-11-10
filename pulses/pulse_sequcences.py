@@ -97,6 +97,7 @@ class PulseLine:
     def add_pulse_element(self, pulse_element_name: str, pulse_element: list, delay: float = 0, repeat: int = 1):
         """
         添加一个脉冲重复单元
+        # Todo: 限制pulse类型
         :param delay: 脉冲重复单元的起始延迟时间，默认为0，单位为秒
         :param repeat: 重复次数，默认为1
         :param pulse_element_name: 脉冲重复单元的名称

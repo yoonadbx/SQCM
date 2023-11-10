@@ -147,4 +147,3 @@ class Interface(InstrumentChannels):
             if channel.channel_name == channel_name:
                 return channel
         raise ValueError(f'No such channel named {channel_name}')
-
